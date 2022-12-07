@@ -10,21 +10,10 @@ static float aspect = 1.0f;
 
 #define ARRAY_SIZE(_x) (sizeof(_x) / sizeof(*_x))
 
-// shape_manager shape_mgr;
-// obstacle_list circles;
-
-system_2d problem({{10.f, 10.f}, 10.f}, {{300.f, 300.f}, 10.f});
-
-//space_2d space;
-
-static float line_width = 1.0f;
+system_2d problem({{10.f, 10.f}, 10.f}, {{200.f, 200.f}, 10.f});
 
 int res_init()
 {
-    // rect r {0.f, 0.f, 1.0f, 1.0f};
-    // use_rectangle(shape_mgr.get_space_ptr(), &r, 100.0f);
-    // circles.gfx_mgr = &shape_mgr;
-
     return init_2d();
 }
 
@@ -35,7 +24,6 @@ int res_init()
 
 int display()
 {
-    //shape_mgr.draw();
     problem.draw(NULL);
 
     return 0;
@@ -57,13 +45,6 @@ static void reset_viewport_to_window(SDL_Window *window)
 
 static bool handle_mouse(SDL_Event *event)
 {
-    // if (event->type != SDL_MOUSEMOTION &&
-    //     event->type != SDL_MOUSEBUTTONUP &&
-    //     event->type != SDL_MOUSEBUTTONDOWN)
-    //     return false;
-
-    // assign_random_colors<std::unique_ptr<shape>>(&manager_state);
-    // return try_drag_all_shapes<std::unique_ptr<shape>>(event, &manager_state, &space);
     return problem.handle_mouse(event);
 }
 
@@ -161,7 +142,6 @@ int main(int, char**)
         ImGui::DragFloat("R", &circle_r);
         if (ImGui::Button("Circle")) {
             problem.obstacles.add_one({{0, 0}, circle_r});
-            // circles.add_one({{0, 0}, circle_r});
         }
         ImGui::End();
 

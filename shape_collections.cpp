@@ -85,6 +85,7 @@ system_2d::system_2d(circle start_pos, circle end_pos) :
     gfx_mgr.add_entity(&finish);
     gfx_mgr.add_entity(&cur);
     start.move(start_pos.center);
+    cur.move(start_pos.center);
     finish.move(end_pos.center);
 
     /* TODO : move to base class */
@@ -98,9 +99,15 @@ void system_2d::pre_draw(float *q_vec)
     if (q_vec) {
         cur.reset_transform();
         cur.move({q_vec[0], q_vec[1]});
+        cur.set_fill_in(false);
+        cur.set_draw_border(true);
         /* hide start and finish ? */
     } else {
-        /* hide current position */
+        start.set_fill_in(false);
+        finish.set_fill_in(false);
+        start.set_draw_border(true);
+        finish.set_draw_border(true);
+        /* TODO : hide */
     }
 }
 
