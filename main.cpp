@@ -5,12 +5,18 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
 #include "shape_collections.hpp"
+#include "interface.hpp"
 
 static float aspect = 1.0f;
 
 #define ARRAY_SIZE(_x) (sizeof(_x) / sizeof(*_x))
 
 system_2d problem({{10.f, 10.f}, 10.f}, {{200.f, 200.f}, 10.f});
+interface_bg interface;
+
+/* Temporary variables */
+float cur_pos[] = {0.f, 0.f};
+bool use_cur = false;
 
 int res_init()
 {
@@ -24,7 +30,13 @@ int res_init()
 
 int display()
 {
-    problem.draw(NULL);
+    interface.init_drawing_space(problem.get_space_ptr());
+    if (use_cur)
+        problem.draw(cur_pos);
+    else
+        problem.draw(NULL);
+
+    interface.draw();
 
     return 0;
 }
@@ -45,6 +57,8 @@ static void reset_viewport_to_window(SDL_Window *window)
 
 static bool handle_mouse(SDL_Event *event)
 {
+    if (interface.handle_mouse(event))
+        return true;
     return problem.handle_mouse(event);
 }
 
@@ -129,7 +143,7 @@ int main(int, char**)
             ImGui_ImplSDL2_ProcessEvent(&event);
         }
 
-        glClearColor(0.4f, 0.0f, 0.4f, 1.0f);
+        glClearColor(1.f, 1.f, 1.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         int ret = display();
         if (ret)
@@ -143,6 +157,9 @@ int main(int, char**)
         if (ImGui::Button("Circle")) {
             problem.obstacles.add_one({{0, 0}, circle_r});
         }
+        ImGui::Text("Current Position");
+        ImGui::DragFloat2("Position", cur_pos, 1.f, 0.0f, 200.f);
+        ImGui::Checkbox("Use Position", &use_cur);
         ImGui::End();
 
         ImGui::Render();

@@ -47,6 +47,8 @@ public:
         return valid_cfg_internal(cfg_coords);
     }
 
+    space_2d *get_space_ptr() { return gfx_mgr.get_space_ptr(); }
+
     void reset_counter() { num_called = 0; }
     void draw(float *q_vec);
     obstacle_list obstacles;
