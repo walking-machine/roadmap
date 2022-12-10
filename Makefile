@@ -12,12 +12,15 @@ SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui
 SOURCES += $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_sdl.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
 
+IMGUI_FILE_DIR = ImGuiFileDialog
+SOURCES += $(IMGUI_FILE_DIR)/ImGuiFileDialog.cpp
+
 SHADERS_DIR = shaders
 ASSETS_DIR = assets
 STANDARD_SHADERS_DIR = ../shaders
 GLM_DIR = /usr/include/glm
 
-INCLUDE_FLAGS = -Iimgui -Isdl-opengl-utils
+INCLUDE_FLAGS = -Iimgui -Isdl-opengl-utils -IImGuiFileDialog
 INCLUDE_FLAGS += -Iimgui/backends
 
 # Just for vscode Intellisense
@@ -84,6 +87,9 @@ endif
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 %.o:$(IMGUI_DIR)/backends/%.cpp
+	$(CXX) $(CXXFLAGS) -c -o $@ $<
+
+%.o:$(IMGUI_FILE_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) -c -o $@ $<
 
 all: $(EXE)

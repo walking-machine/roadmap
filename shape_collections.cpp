@@ -39,8 +39,28 @@ void obstacle_list::add_one(circle c)
     gfx_mgr->add_entity(circles.back().get());
 }
 
-void obstacle_list::save_as(std::string file_name)
-{}
+static circle circle_from_file(std::ifstream &file)
+{
+    circle c;
+    file >> c.center.x >> c.center.y >> c.radius;
+    return c;
+}
+
+static void write_circle_to_file(circle &data, std::ofstream &file)
+{
+    file << data.center.x << " " << data.center.y << " " << data.radius << "\n";
+}
+
+void obstacle_list::save_as(std::ofstream &file)
+{
+    file << circles.size() << "\n";
+    apply_transforms();
+
+    for (auto &c : circles) {
+        circle data = c->get_data();
+        write_circle_to_file(data, file);
+    }
+}
 
 void obstacle_list::apply_transforms()
 {
@@ -68,12 +88,32 @@ bool obstacle_list::intersects_with(shape *shape)
     return false;
 }
 
-void draw_interface(system_2d *sys) {}
+void obstacle_list::fill_from_file(std::ifstream &file)
+{
+    uint num_circles;
+
+    file >> num_circles;
+    circles.reserve(num_circles);
+
+    for (uint i = 0; i < num_circles; i++) {
+        circle c = circle_from_file(file);
+        add_one(c);
+    }
+}
 
 void system_nd::draw(float *q_vec)
 {
     pre_draw(q_vec);
     gfx_mgr.draw();
+}
+
+void system_nd::save(std::string system_name)
+{
+    std::ofstream file(system_name);
+
+    file << get_q_size() << "\n";
+    save_tool(file);
+    obstacles.save_as(file);
 }
 
 system_2d::system_2d(circle start_pos, circle end_pos) :
@@ -120,4 +160,48 @@ bool system_2d::valid_cfg_internal(float *cfg_coords)
 {
     /* TODO : implement */
     return false;
+}
+
+void system_2d::save_tool(std::ofstream &file)
+{
+    start.apply_transform();
+    finish.apply_transform();
+    circle c1 = start.get_data();
+    circle c2 = finish.get_data();
+
+    write_circle_to_file(c1, file);
+    write_circle_to_file(c2, file);
+}
+
+uint system_2d::get_q_size() { return 2; }
+
+system_2d::system_2d(std::ifstream &file) : system_2d()
+{
+    circle c1 = circle_from_file(file);
+    circle c2 = circle_from_file(file);
+
+    start = shape_circle(c1);
+    finish = shape_circle(c2);
+}
+
+system_nd *get_from_file(std::string path_name)
+{
+    std::ifstream file(path_name);
+    if (!file.is_open())
+        return NULL;
+    
+    system_nd *sys_nd = NULL;
+    
+    uint num_dims;
+    file >> num_dims;
+    switch (num_dims) {
+    case 2:
+        sys_nd = new system_2d(file);
+        break;
+    default:
+        return NULL;
+    }
+
+    sys_nd->obstacles.fill_from_file(file);
+    return sys_nd;
 }

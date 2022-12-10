@@ -4,6 +4,7 @@
 #include <gl_sdl_shape_obj.hpp>
 #include <memory>
 #include <vector>
+#include <fstream>
 
 class shape_manager {
 private:
@@ -22,13 +23,13 @@ class obstacle_list {
 public:
     obstacle_list() {}
     void add_one(circle c);
-    void save_as(std::string file_name);
+    void save_as(std::ofstream &file);
     void apply_transforms();    /* To apply before running algorithm */
     shape_circle *get_circle(uint idx);
     uint get_num_circles();
     bool intersects_with(shape *shape);
     shape_manager *gfx_mgr;
-    void fill_from_file(std::string filename);
+    void fill_from_file(std::ifstream &file);
 private:
     std::vector<std::unique_ptr<shape_circle>> circles;
 };
@@ -39,6 +40,8 @@ private:
 protected:
     virtual bool valid_cfg_internal(float *cfg_coords) = 0;
     virtual void pre_draw(float *q_vec) = 0;
+    virtual void save_tool(std::ofstream &file) = 0;
+    virtual uint get_q_size() = 0;
     shape_manager gfx_mgr;
 public:
     bool handle_mouse(SDL_Event *event) { return gfx_mgr.handle_mouse(event); }
@@ -51,6 +54,7 @@ public:
 
     void reset_counter() { num_called = 0; }
     void draw(float *q_vec);
+    void save(std::string system_name);
     obstacle_list obstacles;
     float w = 400.0f;
     float h = 225.0f;
@@ -62,6 +66,8 @@ class system_2d : public system_nd {
 protected:
     virtual bool valid_cfg_internal(float *cfg_coords) override;
     virtual void pre_draw(float *q_vec) override;
+    virtual void save_tool(std::ofstream &file) override;
+    virtual uint get_q_size() override;
 public:
     shape_circle start;
     shape_circle finish;
@@ -69,7 +75,10 @@ public:
     system_2d(circle start_pos, circle end_pos);
     system_2d() : system_2d({{0.f,0.f}, DEFAULT_RADIUS},
                             {{0.f, 0.f}, DEFAULT_RADIUS}) {}
+    system_2d(std::ifstream &file);
 };
+
+system_nd *get_from_file(std::string path_name);
 
 class graph {
 public:
@@ -99,5 +108,4 @@ public:
     virtual std::unique_ptr<graph> build_roadmap(system_nd *sys) = 0;
 };
 
-void draw_interface(system_2d *sys);
 #endif

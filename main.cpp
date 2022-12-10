@@ -4,6 +4,7 @@
 #include <imgui.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
+#include <ImGuiFileDialog.h>
 #include "shape_collections.hpp"
 #include "interface.hpp"
 
@@ -11,8 +12,12 @@ static float aspect = 1.0f;
 
 #define ARRAY_SIZE(_x) (sizeof(_x) / sizeof(*_x))
 
-system_2d problem({{10.f, 10.f}, 10.f}, {{200.f, 200.f}, 10.f});
+std::unique_ptr<system_nd> problem(new system_2d({{10.f, 10.f}, 10.f},
+                                                 {{200.f, 200.f}, 10.f}));
 interface_bg interface;
+std::string cur_file = "";
+std::string cur_path = ".";
+int new_sys_type = 0;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
@@ -30,11 +35,11 @@ int res_init()
 
 int display()
 {
-    interface.init_drawing_space(problem.get_space_ptr());
+    interface.init_drawing_space(problem->get_space_ptr());
     if (use_cur)
-        problem.draw(cur_pos);
+        problem->draw(cur_pos);
     else
-        problem.draw(NULL);
+        problem->draw(NULL);
 
     interface.draw();
 
@@ -59,7 +64,7 @@ static bool handle_mouse(SDL_Event *event)
 {
     if (interface.handle_mouse(event))
         return true;
-    return problem.handle_mouse(event);
+    return problem->handle_mouse(event);
 }
 
 static bool handle_keyboard(SDL_Event *event)
@@ -155,11 +160,62 @@ int main(int, char**)
         ImGui::Begin("Geometry control");
         ImGui::DragFloat("R", &circle_r);
         if (ImGui::Button("Circle")) {
-            problem.obstacles.add_one({{0, 0}, circle_r});
+            problem->obstacles.add_one({{0, 0}, circle_r});
         }
         ImGui::Text("Current Position");
         ImGui::DragFloat2("Position", cur_pos, 1.f, 0.0f, 200.f);
         ImGui::Checkbox("Use Position", &use_cur);
+
+
+        if (ImGuiFileDialog::Instance()->Display("ChooseFileSave")) {
+            if (ImGuiFileDialog::Instance()->IsOk()) {
+                cur_file = ImGuiFileDialog::Instance()->GetFilePathName();
+                cur_path = ImGuiFileDialog::Instance()->GetCurrentPath();
+                problem->save(cur_file);
+            }
+
+            ImGuiFileDialog::Instance()->Close();
+        }
+
+        if (ImGuiFileDialog::Instance()->Display("ChooseFileOpen")) {
+            if (ImGuiFileDialog::Instance()->IsOk()) {
+                cur_file = ImGuiFileDialog::Instance()->GetFilePathName();
+                cur_path = ImGuiFileDialog::Instance()->GetCurrentPath();
+                system_nd *sys_nd = get_from_file(cur_file);
+                if (sys_nd)
+                    problem.reset(sys_nd);
+            }
+
+            ImGuiFileDialog::Instance()->Close();
+        }
+
+        bool save = ImGui::Button("Save");
+        bool save_as = ImGui::Button("Save As...");
+
+        if (save && cur_file.length()) {
+            problem->save(cur_file);
+            goto save_end;
+        }
+        
+        if (save_as || save)
+            ImGuiFileDialog::Instance()->OpenDialog("ChooseFileSave",
+                                                    "Choose File", ".data",
+                                                    cur_path);
+
+save_end:
+        if (ImGui::Button("Open"))
+            ImGuiFileDialog::Instance()->OpenDialog("ChooseFileOpen",
+                                                    "Choose File", ".data",
+                                                    cur_path);
+        ImGui::RadioButton("2D", &new_sys_type, 0);
+        if (ImGui::Button("Create")) {
+            system_nd *sys_nd = NULL;
+            if (new_sys_type == 0)
+                sys_nd = new system_2d({{10.f, 10.f}, 10.f},
+                                       {{200.f, 200.f}, 10.f});
+            if (sys_nd != NULL)
+                problem.reset(sys_nd);
+        }
         ImGui::End();
 
         ImGui::Render();
