@@ -98,6 +98,9 @@ public:
         groups[id1].push_back(id2);
         groups[id2].push_back(id1);
     }
+
+    graph() {}
+    graph(uint config_size) : q_size(config_size) {}
 };
 
 void draw_2d_graph(space_2d *space, graph &g);
@@ -105,8 +108,19 @@ void draw_2d_graph(space_2d *space, graph &g);
 class algorithm {
 protected:
     uint closest_neighbor(float *q_point, graph *cur_set);  /* Do a naive search */
+    system_nd *sys = NULL;
+    virtual bool continue_map_internal(graph *cur_set) = 0;
 public:
-    virtual std::unique_ptr<graph> build_roadmap(system_nd *sys) = 0;
+    bool continue_map(graph *cur_set) {
+        if (!sys)
+            return false;
+        return continue_map_internal(cur_set);
+    }
+
+    graph *init_algo(system_nd *new_sys) {
+        sys = new_sys;
+        return new graph(sys->get_q_size());
+    }
 };
 
 #endif
