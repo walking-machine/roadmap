@@ -22,6 +22,10 @@ int new_sys_type = 0;
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
 bool use_cur = false;
+graph test_graph;
+int verts[] = {0,0};
+float new_vert[] = {0.f, 0.f};
+bool draw_graph = false;
 
 int res_init()
 {
@@ -40,6 +44,9 @@ int display()
         problem->draw(cur_pos);
     else
         problem->draw(NULL);
+
+    if (draw_graph)
+        draw_2d_graph(problem->get_space_ptr(), test_graph);
 
     interface.draw();
 
@@ -216,6 +223,20 @@ save_end:
             if (sys_nd != NULL)
                 problem.reset(sys_nd);
         }
+
+/* Temporary stuff */
+        ImGui::NewLine();
+        ImGui::Checkbox("Draw graph", &draw_graph);
+        ImGui::DragFloat2("Graph vert", new_vert);
+        if (ImGui::Button("Add vert"))
+            test_graph.add_vertice(new_vert);
+        if (test_graph.get_num_verts()) {
+            ImGui::DragInt2("Edge", verts, 1.f, 0,
+                            test_graph.get_num_verts() - 1);
+            if (ImGui::Button("Add edge"))
+                test_graph.add_edge((uint)verts[0], (uint)verts[1]);
+        }
+
         ImGui::End();
 
         ImGui::Render();

@@ -205,3 +205,44 @@ system_nd *get_from_file(std::string path_name)
     sys_nd->obstacles.fill_from_file(file);
     return sys_nd;
 }
+
+float *graph::get_vertice(uint idx)
+{
+    float *all_data = vertice_data.data();
+    return all_data + idx * q_size;
+}
+
+void draw_2d_graph(space_2d *space, graph &g)
+{
+    start_2d(space);
+    if (g.q_size != 2)
+        return;
+
+    set_line_width(3.f);
+    color graph_color = { 20, 20, 20, 255};
+    set_draw_color(&graph_color);
+    point zero_offset = {0.f, 0.f};
+    set_offset(&zero_offset);
+    set_rot_angle(0);
+
+    uint num_verts = g.groups.size();
+
+    for (uint i = 0; i < num_verts; i++) {
+        float *first_data = g.get_vertice(i);
+        point p1 = { first_data[0], first_data[1] };
+
+        for (auto j : g.groups[i]) {
+            float *second_data = g.get_vertice(j);
+            point p2 = { second_data[0], second_data[1] };
+            line edge = { p1, p2 };
+            draw_line(&edge);
+        }
+    }
+
+    for (uint i = 0; i < num_verts; i++) {
+        float x = g.vertice_data[i * 2];
+        float y = g.vertice_data[i * 2 + 1];
+        circle vert = {{x, y}, 4.f};
+        draw_circle(&vert);
+    }
+}

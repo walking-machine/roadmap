@@ -41,7 +41,6 @@ protected:
     virtual bool valid_cfg_internal(float *cfg_coords) = 0;
     virtual void pre_draw(float *q_vec) = 0;
     virtual void save_tool(std::ofstream &file) = 0;
-    virtual uint get_q_size() = 0;
     shape_manager gfx_mgr;
 public:
     bool handle_mouse(SDL_Event *event) { return gfx_mgr.handle_mouse(event); }
@@ -58,6 +57,7 @@ public:
     obstacle_list obstacles;
     float w = 400.0f;
     float h = 225.0f;
+    virtual uint get_q_size() = 0;
 };
 
 #define DEFAULT_RADIUS 2.0f
@@ -67,7 +67,6 @@ protected:
     virtual bool valid_cfg_internal(float *cfg_coords) override;
     virtual void pre_draw(float *q_vec) override;
     virtual void save_tool(std::ofstream &file) override;
-    virtual uint get_q_size() override;
 public:
     shape_circle start;
     shape_circle finish;
@@ -76,16 +75,18 @@ public:
     system_2d() : system_2d({{0.f,0.f}, DEFAULT_RADIUS},
                             {{0.f, 0.f}, DEFAULT_RADIUS}) {}
     system_2d(std::ifstream &file);
+    virtual uint get_q_size() override;
 };
 
 system_nd *get_from_file(std::string path_name);
 
 class graph {
 public:
-    uint q_size;
+    uint q_size = 2;
     std::vector<std::vector<uint>> groups;  /* neighbors */
     std::vector<float> vertice_data;
     float *get_vertice(uint idx);
+    uint get_num_verts() { return groups.size(); }
     void add_vertice(float *data) {
         vertice_data.reserve(vertice_data.size() + q_size);
         for (uint i = 0; i < q_size; i++)
@@ -99,7 +100,7 @@ public:
     }
 };
 
-void draw_2d_graph();
+void draw_2d_graph(space_2d *space, graph &g);
 
 class algorithm {
 protected:
