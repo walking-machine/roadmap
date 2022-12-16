@@ -140,7 +140,7 @@ void system_2d::pre_draw(float *q_vec)
     if (q_vec) {
         cur.reset_transform();
         cur.move({q_vec[0], q_vec[1]});
-        cur.set_fill_in(false);
+        cur.set_fill_in(valid_cfg(q_vec));
         cur.set_draw_border(true);
         start.set_enabled(false);
         finish.set_enabled(false);
@@ -158,8 +158,13 @@ void system_2d::pre_draw(float *q_vec)
 
 bool system_2d::valid_cfg_internal(float *cfg_coords)
 {
-    /* TODO : implement */
-    return false;
+    cur.reset_transform();
+    cur.move({cfg_coords[0], cfg_coords[1]});
+    for (uint i = 0; i < obstacles.get_num_circles(); i++)
+        if (obstacles.get_circle(i)->intersects_circle(&cur))
+            return false;
+
+    return true;
 }
 
 void system_2d::save_tool(std::ofstream &file)
