@@ -1,5 +1,8 @@
 #include "shape_collections.hpp"
 #include <iostream>
+#include <limits>
+#include <algorithm>
+#include <queue>
 
 bool shape_manager::handle_mouse(SDL_Event *event)
 {
@@ -189,6 +192,26 @@ system_2d::system_2d(std::ifstream &file) : system_2d()
     finish = shape_circle(c2);
 }
 
+float *system_2d::get_start()
+{
+    float *data = new float[2];
+    start.apply_transform();
+    circle c = start.get_data();
+    data[0] = c.center.x;
+    data[1] = c.center.y;
+    return data;
+}
+
+float *system_2d::get_finish()
+{
+    float *data = new float[2];
+    finish.apply_transform();
+    circle c = finish.get_data();
+    data[0] = c.center.x;
+    data[1] = c.center.y;
+    return data;
+}
+
 system_nd *get_from_file(std::string path_name)
 {
     std::ifstream file(path_name);
@@ -217,13 +240,48 @@ float *graph::get_vertice(uint idx)
     return all_data + idx * q_size;
 }
 
+static uint get_component(std::vector<uint> &ccs, uint id)
+{
+    uint root = id;
+    while (ccs[root] != root)
+        root = ccs[root];
+    
+    /* Reduce depth */
+    while (ccs[id] != root) {
+        uint next = id;
+        ccs[id] = root;
+        id = next;
+    }
+
+    return root;
+}
+
+void graph::add_edge(uint id1, uint id2)
+{
+    groups[id1].push_back(id2);
+    groups[id2].push_back(id1);
+
+    uint cc1 = get_component(connected_components, id1);
+    uint cc2 = get_component(connected_components, id2);
+
+    uint cc = cc1 < cc2 ? cc1 : cc2;
+    connected_components[cc1] = cc;
+    connected_components[cc2] = cc;
+}
+
+bool graph::same_component(uint id1, uint id2)
+{
+    return get_component(connected_components, id1) ==
+           get_component(connected_components, id2);
+}
+
 void draw_2d_graph(space_2d *space, graph &g)
 {
     start_2d(space);
     if (g.q_size != 2)
         return;
 
-    set_line_width(3.f);
+    set_line_width(2.f);
     color graph_color = { 20, 20, 20, 255};
     set_draw_color(&graph_color);
     point zero_offset = {0.f, 0.f};
@@ -245,9 +303,216 @@ void draw_2d_graph(space_2d *space, graph &g)
     }
 
     for (uint i = 0; i < num_verts; i++) {
+        set_draw_color(&colors[get_component(g.connected_components, i) % 18]);
         float x = g.vertice_data[i * 2];
         float y = g.vertice_data[i * 2 + 1];
-        circle vert = {{x, y}, 4.f};
+        circle vert = {{x, y}, 2.f};
+        draw_circle(&vert);
+    }
+}
+
+static float get_dist_sq_nd(float *v1, float *v2, uint size)
+{
+    float dist_sq = 0.f;
+
+    for (uint j = 0; j < size; j++)
+        dist_sq += powf(v1[j] - v2[j], 2.f);
+
+    return dist_sq;
+}
+
+uint get_next_in_radius(graph *g, float r_sq, uint start, float *ref)
+{
+    uint n = g->get_num_verts();
+    uint q_size = g->q_size;
+
+    for (uint i = start; i < n; i++) {
+        float *data = g->get_vertice(i);
+        float dist_sq = 0.f;
+
+        for (uint j = 0; j < q_size; j++)
+            dist_sq += powf(data[j] - ref[j], 2.f);
+
+        if (dist_sq <= r_sq)
+            return i;
+    }
+
+    return n;
+}
+
+struct dijkstra_node {
+    uint idx;
+    uint through;
+    float cost;
+};
+
+class dijkstra_greater {
+public:
+    const bool
+    operator() (const dijkstra_node &node_1, const dijkstra_node &node_2)
+    {
+        return node_1.cost > node_2.cost;
+    }
+};
+
+float get_graph_dist(graph *g, uint id1, uint id2)
+{
+    float *data_1 = g->get_vertice(id1);
+    float *data_2 = g->get_vertice(id2);
+
+    return get_dist_sq_nd(data_1, data_2, g->q_size);
+}
+
+static std::vector<uint> dijkstra_path(graph *g, uint start, uint finish)
+{
+    uint n = g->get_num_verts();
+    dijkstra_node def = { n, n, std::numeric_limits<float>::max() };
+    std::vector<dijkstra_node> cur_best_path(n, def);
+    std::vector<bool> was_visited(g->get_num_verts(), false);
+    std::priority_queue<dijkstra_node, std::vector<dijkstra_node>,
+                        dijkstra_greater> verts_to_explore;
+
+    verts_to_explore.push({start, start, 0.f});
+    bool found = false;
+
+    while (!verts_to_explore.empty()) {
+        dijkstra_node node = verts_to_explore.top();
+        verts_to_explore.pop();
+        if (was_visited[node.idx])
+            continue;
+
+        for (uint id : g->groups[node.idx]) {
+            dijkstra_node new_node = {id, node.idx,
+                                      node.cost + get_graph_dist(g, node.idx, id)};
+            if (was_visited[id] || new_node.cost >= cur_best_path[id].cost)
+                continue;
+            
+            cur_best_path[id] = new_node;
+            
+            if (id == finish) {
+                found = true;
+                break;
+            }
+
+            verts_to_explore.push(new_node);
+        }
+
+        was_visited[node.idx] = true;
+        if (found)
+            break;
+    }
+
+    if (!found)
+        return {};
+
+    std::vector<uint> full_path;
+    uint cur_id = finish;
+    while (cur_id != start) {
+        full_path.push_back(cur_id);
+        cur_id = cur_best_path[cur_id].through;
+    }
+
+    full_path.push_back(start);
+
+    std::reverse(full_path.begin(), full_path.end());
+
+    return full_path;
+}
+
+struct vert_dist {
+    uint vert_id;
+    float dist;
+};
+
+bool comp_verts(vert_dist &vd1, vert_dist &vd2)
+{
+    return vd1.dist < vd2.dist;
+}
+
+std::vector<float> build_path(graph *g, system_nd *sys,
+                              float *start, float *finish)
+{
+    uint n = g->get_num_verts();
+    std::vector<vert_dist> vds_start(n);
+    std::vector<vert_dist> vds_finish(n);
+
+    for (uint i = 0; i < n; i++) {
+        float *data = g->get_vertice(i);
+        vds_start[i] = { i, get_dist_sq_nd(data, start, g->q_size) };
+        vds_finish[i] = { i, get_dist_sq_nd(data, finish, g->q_size) };
+    }
+
+    std::sort(vds_start.begin(), vds_start.end(), comp_verts);
+    std::sort(vds_finish.begin(), vds_finish.end(), comp_verts);
+
+    bool found = false;
+    uint start_neigh = 0;
+    uint end_neigh = 0;
+
+    for (uint i = 0; i < n; i++) {
+        start_neigh = vds_start[i].vert_id;
+        found = false;
+        if (!sys->valid_cfg_seq(start, g->get_vertice(start_neigh)))
+            continue;
+
+        for (uint j = 0; j < n; j++) {
+            end_neigh = vds_finish[j].vert_id;
+
+            if (!g->same_component(start_neigh, end_neigh))
+                continue;
+            if (!sys->valid_cfg_seq(finish, g->get_vertice(end_neigh)))
+                continue;
+            found = true;
+            break;
+        }
+
+        if (found)
+            break;
+    }
+
+    if (!found)
+        return {};
+    
+    auto id_path = dijkstra_path(g, start_neigh, end_neigh);
+    std::vector<float> path((id_path.size() + 2) * g->q_size);
+
+    for (uint j = 0; j < g->q_size; j++) {
+        path[j] = start[j];
+        path[path.size() - g->q_size + j] = finish[j];
+    }
+
+    for (uint i = 0; i < id_path.size(); i++) {
+        uint step = g->q_size;
+        float *data = g->get_vertice(id_path[i]);
+
+        for (uint j = 0; j < step; j++)
+            path[step + i * step + j] = data[j];
+    }
+
+    return path;
+}
+
+void draw_path(std::vector<float> &path)
+{
+    uint num_verts = path.size() / 2;
+
+    set_line_width(2.f);
+    color path_color = { 208, 20, 20, 255};
+    set_draw_color(&path_color);
+    point zero_offset = {0.f, 0.f};
+    set_offset(&zero_offset);
+    set_rot_angle(0);
+
+    for (uint i = 0; i < num_verts; i++) {
+        point cur = { path[i * 2], path[i * 2 + 1] };
+
+        if (i > 0) {
+            point prev = { path[i * 2 - 2], path[i * 2 - 1] };
+            line edge = {prev, cur};
+            draw_line(&edge);
+        }
+
+        circle vert = {cur, 2.f};
         draw_circle(&vert);
     }
 }

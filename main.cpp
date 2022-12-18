@@ -7,6 +7,7 @@
 #include <ImGuiFileDialog.h>
 #include "shape_collections.hpp"
 #include "interface.hpp"
+#include "prm.hpp"
 
 static float aspect = 1.0f;
 
@@ -18,14 +19,16 @@ interface_bg interface;
 std::string cur_file = "";
 std::string cur_path = ".";
 int new_sys_type = 0;
+std::unique_ptr<graph> cur_graph;
+std::unique_ptr<algorithm> algo;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
 bool use_cur = false;
-graph test_graph;
 int verts[] = {0,0};
 float new_vert[] = {0.f, 0.f};
 bool draw_graph = false;
+std::vector<float> path;
 
 int res_init()
 {
@@ -45,8 +48,11 @@ int display()
     else
         problem->draw(NULL);
 
-    if (draw_graph)
-        draw_2d_graph(problem->get_space_ptr(), test_graph);
+    if (draw_graph && cur_graph.get() && cur_graph->q_size == 2)
+        draw_2d_graph(problem->get_space_ptr(), *cur_graph);
+
+    if (path.size())
+        draw_path(path);
 
     interface.draw();
 
@@ -227,14 +233,29 @@ save_end:
 /* Temporary stuff */
         ImGui::NewLine();
         ImGui::Checkbox("Draw graph", &draw_graph);
-        ImGui::DragFloat2("Graph vert", new_vert);
-        if (ImGui::Button("Add vert"))
-            test_graph.add_vertice(new_vert);
-        if (test_graph.get_num_verts()) {
-            ImGui::DragInt2("Edge", verts, 1.f, 0,
-                            test_graph.get_num_verts() - 1);
-            if (ImGui::Button("Add edge"))
-                test_graph.add_edge((uint)verts[0], (uint)verts[1]);
+
+        static std::string graph_msg = "You can start building a roadmap";
+
+        if (ImGui::Button("Start building")) {
+            algo.reset(new s_prm(50, 50.f));
+            cur_graph.reset(algo->init_algo(problem.get()));
+            graph_msg = "Keep going";
+        }
+
+        if (ImGui::Button("Proceed")) {
+            if (algo->continue_map(cur_graph.get()))
+                graph_msg = "Keep going";
+            else
+                graph_msg = "Algo finished";
+        }
+
+        ImGui::Text("%s", graph_msg.c_str());
+
+        if (ImGui::Button("Find path") && cur_graph.get() && problem.get()) {
+            float *start = problem->get_start();
+            float *finish = problem->get_finish();
+            path = build_path(cur_graph.get(), problem.get(),
+                              start, finish);
         }
 
         ImGui::End();
