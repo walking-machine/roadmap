@@ -21,6 +21,9 @@ std::string cur_path = ".";
 int new_sys_type = 0;
 std::unique_ptr<graph> cur_graph;
 std::unique_ptr<algorithm> algo;
+float path_percent;
+bool do_draw_path = true;
+bool draw_animation = true;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
@@ -51,8 +54,12 @@ int display()
     if (draw_graph && cur_graph.get() && cur_graph->q_size == 2)
         draw_2d_graph(problem->get_space_ptr(), *cur_graph);
 
-    if (path.size())
-        draw_path(path);
+    if (path.size()) {
+        if (do_draw_path)
+            draw_path(path);
+        if (draw_animation)
+            draw_pos(path, problem.get(), path_percent);
+    }
 
     interface.draw();
 
@@ -242,7 +249,7 @@ save_end:
             graph_msg = "Keep going";
         }
 
-        if (ImGui::Button("Proceed")) {
+        if (cur_graph.get() && ImGui::Button("Proceed")) {
             if (algo->continue_map(cur_graph.get()))
                 graph_msg = "Keep going";
             else
@@ -256,6 +263,15 @@ save_end:
             float *finish = problem->get_finish();
             path = build_path(cur_graph.get(), problem.get(),
                               start, finish);
+        }
+
+        if (path.size()) {
+            ImGui::Checkbox("Draw path", &do_draw_path);
+
+            ImGui::Checkbox("Draw animation", &draw_animation);
+            if (draw_animation)
+                ImGui::DragFloat("Animation percent", &path_percent,
+                                 0.005f, 0.f, 1.f);
         }
 
         ImGui::End();

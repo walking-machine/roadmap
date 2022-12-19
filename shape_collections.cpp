@@ -217,9 +217,11 @@ system_2d::system_2d(std::ifstream &file) : system_2d()
 {
     circle c1 = circle_from_file(file);
     circle c2 = circle_from_file(file);
+    circle c3 = { { 0.f, 0.f }, c1.radius };
 
     start = shape_circle(c1);
     finish = shape_circle(c2);
+    cur = shape_circle(c3);
 }
 
 float *system_2d::get_start()
@@ -545,4 +547,56 @@ void draw_path(std::vector<float> &path)
         circle vert = {cur, 2.f};
         draw_circle(&vert);
     }
+}
+
+static std::vector<float> get_costs_norm(std::vector<float> &path, uint q_size)
+{
+    std::vector<float> costs(path.size() / q_size);
+    float overall_cost = 0.f;
+
+    for (uint i = 0; i < path.size() - q_size; i += q_size) {
+        overall_cost += sqrtf(get_dist_sq_nd(path.data() + i,
+                              path.data() + i + q_size, q_size));
+        costs[i / q_size] = overall_cost;
+    }
+
+    for (float &cost : costs) {
+        cost /= overall_cost;
+    }
+
+    return costs;
+}
+
+static void interpolate(float *p1, float *p2, float t, float *dest, uint q_size)
+{
+    for (uint j = 0; j < q_size; j++)
+        dest[j] = p1[j] + t * (p2[j] - p1[j]);
+}
+
+void draw_pos(std::vector<float> &path, system_nd *sys, float percent)
+{
+    std::vector<float> costs = get_costs_norm(path, sys->get_q_size());
+    uint start_id = costs.size() - 2;
+    uint q_size = sys->get_q_size();
+
+    for (uint i = 0; i <= costs.size() - 2; i++) {
+        if (costs[i] > percent) {
+            start_id = i;
+            break;
+        }
+    }
+
+    uint end_id = start_id + 1;
+    float start_percent = start_id ? costs[start_id - 1] : 0.f;
+    float end_percent = costs[start_id];
+
+    float internal_percent = (percent - start_percent) /
+                             (end_percent - start_percent);
+
+    float *pos = new float[3];
+    interpolate(path.data() + q_size * start_id, path.data() + q_size * end_id,
+                internal_percent, pos, q_size);
+    sys->draw(pos);
+
+    delete pos;
 }
