@@ -161,10 +161,40 @@ void system_2d::pre_draw(float *q_vec)
 
 bool system_2d::valid_cfg_internal(float *cfg_coords)
 {
-    cur.reset_transform();
-    cur.move({cfg_coords[0], cfg_coords[1]});
+    circle c = {{ cfg_coords[0], cfg_coords[1] }, start.get_data().radius };
     for (uint i = 0; i < obstacles.get_num_circles(); i++)
-        if (obstacles.get_circle(i)->intersects_circle(&cur))
+        if (obstacles.get_circle(i)->intersects_another_circle(&c))
+            return false;
+
+    return true;
+}
+
+bool system_2d::valid_cfg_seq_internal(float *cfg_1, float *cfg_2)
+{
+    float x1 = cfg_1[0];
+    float x2 = cfg_2[0];
+    float y1 = cfg_1[1];
+    float y2 = cfg_2[1];
+
+    float v_x = -(y2 - y1);
+    float v_y = x2 - x1;
+
+    float len = sqrtf(v_x * v_x + v_y * v_y);
+
+    v_x = v_x * start.get_data().radius / len;
+    v_y = v_y * start.get_data().radius / len;
+
+    point p1 = { x1 - v_x, y1 - v_y };
+    point p2 = { x1 + v_x, y1 + v_y };
+    point p3 = { x2 - v_x, y2 - v_y };
+    point p4 = { x2 + v_x, y2 + v_y };
+
+    tri tri_1 = { p1, p2, p4 };
+    tri tri_2 = { p2, p4, p3 };
+
+    for (uint i = 0; i < obstacles.get_num_circles(); i++)
+        if (obstacles.get_circle(i)->intersects_tri(&tri_1) ||
+            obstacles.get_circle(i)->intersects_tri(&tri_2))
             return false;
 
     return true;

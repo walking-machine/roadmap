@@ -77,6 +77,7 @@ protected:
     virtual bool valid_cfg_internal(float *cfg_coords) override;
     virtual void pre_draw(float *q_vec) override;
     virtual void save_tool(std::ofstream &file) override;
+    virtual bool valid_cfg_seq_internal(float *cfg_1, float *cfg_2) override;
     float dims[2] = {w, h};
 public:
     shape_circle start;
