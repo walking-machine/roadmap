@@ -24,6 +24,10 @@ std::unique_ptr<algorithm> algo;
 float path_percent;
 bool do_draw_path = true;
 bool draw_animation = true;
+int num_arm_links = 2;
+static int num_prm_nodes = 50;
+static int num_proceed = 1;
+static float connection_radius = 20.f;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
@@ -228,11 +232,19 @@ save_end:
                                                     "Choose File", ".data",
                                                     cur_path);
         ImGui::RadioButton("2D", &new_sys_type, 0);
+        ImGui::RadioButton("Planar arm", &new_sys_type, 1);
+
+        if (new_sys_type == 1)
+            ImGui::DragInt("Link Number", &num_arm_links, 0.25f, 1, 12);
+
         if (ImGui::Button("Create")) {
             system_nd *sys_nd = NULL;
             if (new_sys_type == 0)
                 sys_nd = new system_2d({{10.f, 10.f}, 10.f},
                                        {{200.f, 200.f}, 10.f});
+            else if (new_sys_type == 1)
+                sys_nd = new system_planar_arm(num_arm_links);
+
             if (sys_nd != NULL)
                 problem.reset(sys_nd);
         }
@@ -242,17 +254,23 @@ save_end:
         ImGui::Checkbox("Draw graph", &draw_graph);
 
         static std::string graph_msg = "You can start building a roadmap";
+        ImGui::DragInt("PRM nodes", &num_prm_nodes, 0.5f, 20, 5000);
+        ImGui::DragFloat("Connection radius", &connection_radius, 0.5f, 0.1f, 50.f);
 
         if (ImGui::Button("Start building")) {
-            algo.reset(new s_prm(50, 50.f));
+            algo.reset(new s_prm(num_prm_nodes, connection_radius));
             cur_graph.reset(algo->init_algo(problem.get()));
             graph_msg = "Keep going";
         }
 
+        ImGui::DragInt("Steps", &num_proceed, 0.5f, 1, 100);
+
         if (cur_graph.get() && ImGui::Button("Proceed")) {
-            if (algo->continue_map(cur_graph.get()))
+            uint updates_left = num_proceed + 1;
+            while ((--updates_left) && algo->continue_map(cur_graph.get()))
                 graph_msg = "Keep going";
-            else
+
+            if (updates_left)
                 graph_msg = "Algo finished";
         }
 
@@ -262,7 +280,7 @@ save_end:
             float *start = problem->get_start();
             float *finish = problem->get_finish();
             path = build_path(cur_graph.get(), problem.get(),
-                              start, finish);
+                              start, finish, connection_radius);
         }
 
         if (path.size()) {

@@ -1,5 +1,4 @@
 #include "shape_collections.hpp"
-#include <iostream>
 #include <limits>
 #include <algorithm>
 #include <queue>
@@ -117,6 +116,17 @@ void system_nd::save(std::string system_name)
     file << get_q_size() << "\n";
     save_tool(file);
     obstacles.save_as(file);
+}
+
+bool system_nd::handle_mouse(SDL_Event *event)
+{
+    bool handled = event_handled_internally(event);
+    handled = handled ? true : gfx_mgr.handle_mouse(event);
+
+    if (handled)
+        correct_moved_objects();
+    
+    return handled;
 }
 
 system_2d::system_2d(circle start_pos, circle end_pos) :
@@ -257,6 +267,12 @@ system_nd *get_from_file(std::string path_name)
     switch (num_dims) {
     case 2:
         sys_nd = new system_2d(file);
+        break;
+    case 3:
+    case 4:
+    case 5:
+    case 6:
+        sys_nd = new system_planar_arm(file);
         break;
     default:
         return NULL;
@@ -462,7 +478,7 @@ bool comp_verts(vert_dist &vd1, vert_dist &vd2)
 }
 
 std::vector<float> build_path(graph *g, system_nd *sys,
-                              float *start, float *finish)
+                              float *start, float *finish, float con_r_sq)
 {
     uint n = g->get_num_verts();
     std::vector<vert_dist> vds_start(n);
@@ -482,12 +498,18 @@ std::vector<float> build_path(graph *g, system_nd *sys,
     uint end_neigh = 0;
 
     for (uint i = 0; i < n; i++) {
+        if (vds_start[i].dist > con_r_sq)
+            break;
+
         start_neigh = vds_start[i].vert_id;
         found = false;
         if (!sys->valid_cfg_seq(start, g->get_vertice(start_neigh)))
             continue;
 
         for (uint j = 0; j < n; j++) {
+            if (vds_finish[j].dist > con_r_sq)
+                break;
+
             end_neigh = vds_finish[j].vert_id;
 
             if (!g->same_component(start_neigh, end_neigh))

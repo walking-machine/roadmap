@@ -34,6 +34,19 @@ private:
     std::vector<std::unique_ptr<shape_circle>> circles;
 };
 
+/* TODO : refactor into 2 lists (string + min + max / ) */
+template <class T>
+struct range_1d {
+    T min;
+    T max;
+};
+
+template <class T>
+struct private_param_info {
+    range_1d<T> range;
+    char *name;
+};
+
 class system_nd {
 private:
     uint num_called = 0;
@@ -43,9 +56,11 @@ protected:
     virtual void pre_draw(float *q_vec) = 0;
     virtual void save_tool(std::ofstream &file) = 0;
     virtual bool valid_cfg_seq_internal(float *cfg_1, float *cfg_2) { return true; }
+    virtual bool event_handled_internally(SDL_Event *event) { return false; }
+    virtual void correct_moved_objects() {}
     shape_manager gfx_mgr;
 public:
-    bool handle_mouse(SDL_Event *event) { return gfx_mgr.handle_mouse(event); }
+    bool handle_mouse(SDL_Event *event);
     bool valid_cfg(float *cfg_coords) {
         num_called++;
         return valid_cfg_internal(cfg_coords);
@@ -65,10 +80,19 @@ public:
     float w = 400.0f;
     float h = 225.0f;
     virtual uint get_q_size() = 0;
-    virtual float *get_dims() = 0;
+    virtual float *get_dims_low() = 0;
+    virtual float *get_dims_high() = 0;
     virtual float *get_start() = 0;
     virtual float *get_finish() = 0;
+    virtual uint get_params_float(float ***params,
+                                  private_param_info<float> **info)
+        { return 0; }
+    virtual uint get_params_int(int ***params,
+                                private_param_info<int> **info)
+        { return 0; }
 };
+
+void show_private_params(system_nd *system);
 
 #define DEFAULT_RADIUS 2.0f
 
@@ -79,19 +103,63 @@ protected:
     virtual void save_tool(std::ofstream &file) override;
     virtual bool valid_cfg_seq_internal(float *cfg_1, float *cfg_2) override;
     float dims[2] = {w, h};
+    float dims_low[2] = { 0, 0 };
 public:
     shape_circle start;
     shape_circle finish;
     shape_circle cur;
     system_2d(circle start_pos, circle end_pos);
-    system_2d() : system_2d({{0.f,0.f}, DEFAULT_RADIUS},
+    system_2d() : system_2d({{0.f, 0.f}, DEFAULT_RADIUS},
                             {{0.f, 0.f}, DEFAULT_RADIUS}) {}
     system_2d(std::ifstream &file);
     virtual uint get_q_size() override;
 
-    virtual float *get_dims() override { return dims; }
+    virtual float *get_dims_high() override { return dims; }
+    virtual float *get_dims_low() override { return dims_low; }
     virtual float *get_start() override;
     virtual float *get_finish() override;
+};
+
+class system_planar_arm : public system_nd {
+protected:
+    virtual bool valid_cfg_internal(float *cfg_coords) override;
+    virtual void pre_draw(float *q_vec) override; /* draw robot arm */
+    virtual void save_tool(std::ofstream &file) override;
+    virtual bool valid_cfg_seq_internal(float *cfg_1, float *cfg_2) override;
+    virtual bool event_handled_internally(SDL_Event *event);
+    virtual void correct_moved_objects();
+    bool is_line_allowed(line l);
+
+    uint num_links = 2;
+    std::unique_ptr<float> link_len;
+    std::unique_ptr<float> start;
+    std::unique_ptr<float> finish;
+    std::unique_ptr<float> limits_low;
+    std::unique_ptr<float> limits_high;
+    std::unique_ptr<shape_circle> start_shape;
+    std::unique_ptr<shape_circle> finish_shape;
+    point root = { 0.f, 0.f };
+
+    std::unique_ptr<float *> params_float;
+    std::unique_ptr<int *> params_int;
+    std::unique_ptr<private_param_info<float>> info_float;
+    std::unique_ptr<private_param_info<int>> info_int;
+    void init();
+    void gfx_mgr_init();
+
+public:
+    system_planar_arm(uint num_links, float universal_link_len = 60.f);
+    system_planar_arm(uint num_links, float *links_length);
+    system_planar_arm(std::ifstream &file);
+    virtual uint get_q_size() override { return num_links; }
+    virtual float *get_start() override { return start.get(); }
+    virtual float *get_finish() override { return finish.get(); }
+    virtual float *get_dims_high() override { return limits_high.get(); }
+    virtual float *get_dims_low() override { return limits_low.get(); }
+    virtual uint get_params_float(float ***params,
+                                  private_param_info<float> **info) override;
+    virtual uint get_params_int(int ***params,
+                                private_param_info<int> **info) override;
 };
 
 system_nd *get_from_file(std::string path_name);
@@ -123,7 +191,7 @@ void draw_2d_graph(space_2d *space, graph &g);
 uint get_next_in_radius(graph *g, float r, uint start, float *ref);
 
 std::vector<float> build_path(graph *g, system_nd *sys,
-                              float *start, float *finish);
+                              float *start, float *finish, float con_r_sq);
 void draw_path(std::vector<float> &path);
 void draw_pos(std::vector<float> &path, system_nd *sys, float percent);
 
