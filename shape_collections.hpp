@@ -44,7 +44,7 @@ struct range_1d {
 template <class T>
 struct private_param_info {
     range_1d<T> range;
-    char *name;
+    std::string name;
 };
 
 class system_nd {
@@ -140,10 +140,10 @@ protected:
     std::unique_ptr<shape_circle> finish_shape;
     point root = { 0.f, 0.f };
 
-    std::unique_ptr<float *> params_float;
-    std::unique_ptr<int *> params_int;
-    std::unique_ptr<private_param_info<float>> info_float;
-    std::unique_ptr<private_param_info<int>> info_int;
+    std::vector<float *> params_float;
+    std::vector<int *> params_int;
+    std::vector<private_param_info<float>> info_float;
+    std::vector<private_param_info<int>> info_int;
     void init();
     void gfx_mgr_init();
 

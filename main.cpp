@@ -249,6 +249,10 @@ save_end:
                 problem.reset(sys_nd);
         }
 
+        ImGui::NewLine();
+        ImGui::Text("Private parameters");
+        show_private_params(problem.get());
+
 /* Temporary stuff */
         ImGui::NewLine();
         ImGui::Checkbox("Draw graph", &draw_graph);

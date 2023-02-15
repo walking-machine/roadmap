@@ -99,6 +99,8 @@ const static float circle_rad = 5.f;
 
 void system_planar_arm::pre_draw(float *q_vec)
 {
+    gfx_mgr_init();
+
     if (!q_vec && start.get() && finish.get()) {
         pre_draw(start.get());
         pre_draw(finish.get());
@@ -177,12 +179,19 @@ void system_planar_arm::init()
     finish.reset(new float[num_links]);
     limits_low.reset(new float[num_links]);
     limits_high.reset(new float[num_links]);
+    params_float.reserve(num_links);
+    info_float.reserve(num_links);
 
     for (uint i = 0; i < num_links; i++) {
         start.get()[i] = 0.f;
         finish.get()[i] = M_PI_4;
         limits_low.get()[i] = -M_PI_2;
         limits_high.get()[i] = M_PI_2;
+
+        private_param_info<float> info { {0.1f, 200.0f},
+                                         "Link " + std::to_string(i + 1) };
+        params_float.push_back(link_len.get() + i);
+        info_float.push_back(info);
     }
 
     start_shape.reset(new shape_circle[num_links]);
@@ -258,14 +267,19 @@ void system_planar_arm::save_tool(ofstream &file)
     write_row(file, finish, num_links);
 }
 
-/* TODO : link length regulation, need to do gfx_mgr_init() somewhere :/, maybe in pre_draw */
 uint system_planar_arm::
 get_params_float(float ***params, private_param_info<float> **info)
 {
-    return 0;
+    *params = params_float.data();
+    *info = info_float.data();
+
+    return params_float.size();
 }
 uint system_planar_arm::
 get_params_int(int ***params, private_param_info<int> **info)
 {
-    return 0;
+    *params = params_int.data();
+    *info = info_int.data();
+
+    return params_int.size();
 }
