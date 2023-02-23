@@ -191,8 +191,8 @@ void system_planar_arm::init()
     finish.reset(new float[num_links]);
     limits_low.reset(new float[num_links]);
     limits_high.reset(new float[num_links]);
-    params_float.reserve(num_links);
-    info_float.reserve(num_links);
+    params_float.reserve(3 * num_links);
+    info_float.reserve( 3 * num_links);
 
     for (uint i = 0; i < num_links; i++) {
         start.get()[i] = 0.f;
@@ -203,6 +203,16 @@ void system_planar_arm::init()
         private_param_info<float> info { {0.1f, 200.0f},
                                          "Link " + std::to_string(i + 1) };
         params_float.push_back(link_len.get() + i);
+        info_float.push_back(info);
+
+        info.name = "Low limit" + std::to_string(i + 1);
+        info.range = { -M_PI, 0.f };
+        params_float.push_back(limits_low.get() + i);
+        info_float.push_back(info);
+
+        info.name = "High limit" + std::to_string(i + 1);
+        info.range = { 0.f, M_PI};
+        params_float.push_back(limits_high.get() + i);
         info_float.push_back(info);
     }
 
