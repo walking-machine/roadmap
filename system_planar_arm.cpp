@@ -164,10 +164,22 @@ static void recalculate_angles(float *angles, shape_circle *nodes,
     }
 }
 
+static void adjust_angles(float *angles, float *limits_low, float *limits_high,
+                          uint num_angles)
+{
+    for (uint i = 0; i < num_angles; i++) {
+        angles[i] = angles[i] > limits_low[i] ? angles[i] : limits_low[i];
+        angles[i] = angles[i] < limits_high[i] ? angles[i] : limits_high[i];
+    }
+}
+
 void system_planar_arm::correct_moved_objects()
 {
     recalculate_angles(start.get(), start_shape.get(), num_links, root);
     recalculate_angles(finish.get(), finish_shape.get(), num_links, root);
+
+    adjust_angles(start.get(), limits_low.get(), limits_high.get(), num_links);
+    adjust_angles(finish.get(), limits_low.get(), limits_high.get(), num_links);
 
     gfx_mgr_init();
 }
