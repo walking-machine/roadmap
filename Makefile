@@ -1,6 +1,6 @@
 EXE = roadmap
 SOURCES = main.cpp shape_collections.cpp interface.cpp prm.cpp
-SOURCES += system_planar_arm.cpp private_params.cpp
+SOURCES += system_planar_arm.cpp private_params.cpp algorithm.cpp
 UTILS_DIR = sdl-opengl-utils
 SOURCES += $(UTILS_DIR)/gl_sdl_utils.cpp $(UTILS_DIR)/gl_sdl_2d.cpp 
 SOURCES += $(UTILS_DIR)/gl_sdl_shape_obj.cpp $(UTILS_DIR)/gl_sdl_geometry.cpp

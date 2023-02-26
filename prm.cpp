@@ -10,7 +10,7 @@ bool s_prm::continue_map_internal(graph *cur_set)
         for (uint i = 0; i < n; i++) {
 try_again:
             for (uint j = 0; j < q_size; j++)
-                data[j] = ranges[j](generator);
+                data[j] = generator->generate(ranges[j]);
         
             if (!sys->valid_cfg(data))
                 goto try_again;
@@ -42,15 +42,6 @@ try_again:
 
 graph *s_prm::init_algo_internal(system_nd *new_sys)
 {
-    uint q_size = new_sys->get_q_size();
-    float *dims_low = new_sys->get_dims_low();
-    float *dims_high = new_sys->get_dims_high();
-    ranges.clear();
-
-    for (uint i = 0; i < q_size; i++)
-        ranges.push_back(std::uniform_real_distribution<float>(dims_low[i], dims_high[i]));
-
-    generator.seed(seed);
     internal_cnt = 0;
 
     return nullptr;

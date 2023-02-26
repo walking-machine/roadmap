@@ -195,24 +195,4 @@ std::vector<float> build_path(graph *g, system_nd *sys,
 void draw_path(std::vector<float> &path);
 void draw_pos(std::vector<float> &path, system_nd *sys, float percent);
 
-class algorithm {
-protected:
-    uint closest_neighbor(float *q_point, graph *cur_set);  /* Do a naive search */
-    system_nd *sys = NULL;
-    virtual bool continue_map_internal(graph *cur_set) = 0;
-    virtual graph *init_algo_internal(system_nd *new_sys) { return nullptr; }
-public:
-    bool continue_map(graph *cur_set) {
-        if (!sys)
-            return false;
-        return continue_map_internal(cur_set);
-    }
-
-    graph *init_algo(system_nd *new_sys) {
-        sys = new_sys;
-        graph *g = init_algo_internal(new_sys);
-        return g ? g : new graph(sys->get_q_size());
-    }
-};
-
 #endif

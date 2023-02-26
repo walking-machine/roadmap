@@ -8,6 +8,7 @@
 #include "shape_collections.hpp"
 #include "interface.hpp"
 #include "prm.hpp"
+#include "algorithm.hpp"
 
 static float aspect = 1.0f;
 
