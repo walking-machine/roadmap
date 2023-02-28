@@ -28,7 +28,7 @@ bool draw_animation = true;
 int num_arm_links = 2;
 static int num_prm_nodes = 50;
 static int num_proceed = 1;
-static float connection_radius = 20.f;
+static float r_multi = 0.5f;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
@@ -256,10 +256,11 @@ save_end:
 
         static std::string graph_msg = "You can start building a roadmap";
         ImGui::DragInt("PRM nodes", &num_prm_nodes, 0.5f, 20, 5000);
-        ImGui::DragFloat("Connection radius", &connection_radius, 0.5f, 0.1f, 50.f);
+        ImGui::DragFloat("Connection radius multi",
+                         &r_multi, 0.01f, 0.01f, 1.f);
 
         if (ImGui::Button("Start building")) {
-            algo.reset(new s_prm(num_prm_nodes, connection_radius));
+            algo.reset(new s_prm(num_prm_nodes, r_multi));
             cur_graph.reset(algo->init_algo(problem.get()));
             graph_msg = "Keep going";
         }
@@ -277,11 +278,12 @@ save_end:
 
         ImGui::Text("%s", graph_msg.c_str());
 
-        if (ImGui::Button("Find path") && cur_graph.get() && problem.get()) {
+        if (ImGui::Button("Find path") && cur_graph.get() && problem.get() && algo.get()) {
             float *start = problem->get_start();
             float *finish = problem->get_finish();
             path = build_path(cur_graph.get(), problem.get(),
-                              start, finish, connection_radius);
+                              start, finish,
+                              algo->get_connection_radius(problem.get()));
         }
 
         if (path.size()) {

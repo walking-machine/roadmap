@@ -44,6 +44,8 @@ public:
     algorithm(sampler *sampler = new sampler_imp<std::mt19937>) {
         generator.reset(sampler);
     }
+
+    virtual float get_connection_radius(system_nd *sys) = 0;
 };
 
 #endif

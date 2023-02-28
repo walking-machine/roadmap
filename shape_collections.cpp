@@ -129,6 +129,19 @@ bool system_nd::handle_mouse(SDL_Event *event)
     return handled;
 }
 
+float system_nd::get_lebesgue()
+{
+    float *low = get_dims_low();
+    float *high = get_dims_high();
+    uint q_size = get_q_size();
+    float volume = 1.f;
+
+    for (uint i = 0; i < q_size; i++)
+        volume *= high[i] - low[i];
+    
+    return volume;
+}
+
 system_2d::system_2d(circle start_pos, circle end_pos) :
                      start(start_pos.radius), finish(start_pos.radius),
                      cur(start_pos.radius)

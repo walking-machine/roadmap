@@ -1,7 +1,17 @@
 #include "prm.hpp"
+#include "algo_utils.h"
+
+static float calc_base_radius(float lebesgue, uint dim)
+{
+    float dim_inv = 1.f / (float)dim;
+
+    return 2.f * powf(1.f + dim_inv, dim_inv) *
+           powf(lebesgue / unit_ball_volume(dim), dim_inv);
+}
 
 bool s_prm::continue_map_internal(graph *cur_set)
 {
+    float r = r_multi * base_r;
     /* generate vertices */
     if (!cur_set->get_num_verts()) {
         uint q_size = cur_set->q_size;
@@ -43,6 +53,12 @@ try_again:
 graph *s_prm::init_algo_internal(system_nd *new_sys)
 {
     internal_cnt = 0;
+    base_r = calc_base_radius(new_sys->get_lebesgue(), new_sys->get_q_size());
 
     return nullptr;
+}
+
+float s_prm::get_connection_radius(system_nd *sys)
+{
+    return calc_base_radius(sys->get_lebesgue(), sys->get_q_size());
 }

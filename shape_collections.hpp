@@ -90,6 +90,7 @@ public:
     virtual uint get_params_int(int ***params,
                                 private_param_info<int> **info)
         { return 0; }
+    virtual float get_lebesgue();
 };
 
 void show_private_params(system_nd *system);
