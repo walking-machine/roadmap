@@ -28,7 +28,7 @@ bool draw_animation = true;
 int num_arm_links = 2;
 static int num_prm_nodes = 50;
 static int num_proceed = 1;
-static float r_multi = 0.5f;
+static float r_multi = 0.1f;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
@@ -69,6 +69,56 @@ int display()
     interface.draw();
 
     return 0;
+}
+
+static void delete_path()
+{
+    path.clear();
+}
+
+static void reset_graph(graph *roadmap)
+{
+    cur_graph.reset(roadmap);
+    delete_path();
+}
+
+static void reset_problem(system_nd *system)
+{
+    if (!system)
+        return;
+
+    problem.reset(system);
+    reset_graph(NULL);
+}
+
+static void animation_gui()
+{
+    if (!path.size())
+        return;
+
+    ImGui::Checkbox("Draw path", &do_draw_path);
+
+    ImGui::Checkbox("Draw animation", &draw_animation);
+    if (draw_animation)
+        ImGui::DragFloat("Animation percent", &path_percent,
+                         0.005f, 0.f, 1.f);
+    
+}
+
+static void path_gui()
+{
+    if (ImGui::Button("Find path") && cur_graph.get() && problem.get() && algo.get()) {
+        float *start = problem->get_start();
+        float *finish = problem->get_finish();
+        path = build_path(cur_graph.get(), problem.get(),
+                          start, finish,
+                          algo->get_connection_radius(problem.get()));
+    }
+
+    animation_gui();
+
+    if (path.size() && ImGui::Button("Clear path"))
+        delete_path();
 }
 
 static void reset_viewport_to_window(SDL_Window *window)
@@ -207,8 +257,7 @@ int main(int, char**)
                 cur_file = ImGuiFileDialog::Instance()->GetFilePathName();
                 cur_path = ImGuiFileDialog::Instance()->GetCurrentPath();
                 system_nd *sys_nd = get_from_file(cur_file);
-                if (sys_nd)
-                    problem.reset(sys_nd);
+                reset_problem(sys_nd);
             }
 
             ImGuiFileDialog::Instance()->Close();
@@ -247,7 +296,7 @@ save_end:
                 sys_nd = new system_planar_arm(num_arm_links);
 
             if (sys_nd != NULL)
-                problem.reset(sys_nd);
+                reset_problem(sys_nd);
         }
 
 /* Temporary stuff */
@@ -261,7 +310,7 @@ save_end:
 
         if (ImGui::Button("Start building")) {
             algo.reset(new s_prm(num_prm_nodes, r_multi));
-            cur_graph.reset(algo->init_algo(problem.get()));
+            reset_graph(algo->init_algo(problem.get()));
             graph_msg = "Keep going";
         }
 
@@ -278,22 +327,10 @@ save_end:
 
         ImGui::Text("%s", graph_msg.c_str());
 
-        if (ImGui::Button("Find path") && cur_graph.get() && problem.get() && algo.get()) {
-            float *start = problem->get_start();
-            float *finish = problem->get_finish();
-            path = build_path(cur_graph.get(), problem.get(),
-                              start, finish,
-                              algo->get_connection_radius(problem.get()));
-        }
+        if (ImGui::Button("Clear graph"))
+            reset_graph(NULL);
 
-        if (path.size()) {
-            ImGui::Checkbox("Draw path", &do_draw_path);
-
-            ImGui::Checkbox("Draw animation", &draw_animation);
-            if (draw_animation)
-                ImGui::DragFloat("Animation percent", &path_percent,
-                                 0.005f, 0.f, 1.f);
-        }
+        path_gui();
 
         ImGui::End();
 
