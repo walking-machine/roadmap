@@ -164,13 +164,27 @@ static void recalculate_angles(float *angles, shape_circle *nodes,
     }
 }
 
+static float clamp_angle(float angle, float low, float high)
+{
+    float mid = (low + high) / 2.f;
+    float angle_n = angle - mid;
+
+    if (angle_n > M_PI)
+        angle -= 2.f * M_PI;
+    else if (angle_n < -M_PI)
+        angle += 2.f * M_PI;
+
+    angle = angle >= low ? angle : low;
+    angle = angle <= high ? angle : high;
+
+    return angle;
+}
+
 static void adjust_angles(float *angles, float *limits_low, float *limits_high,
                           uint num_angles)
 {
-    for (uint i = 0; i < num_angles; i++) {
-        angles[i] = angles[i] > limits_low[i] ? angles[i] : limits_low[i];
-        angles[i] = angles[i] < limits_high[i] ? angles[i] : limits_high[i];
-    }
+    for (uint i = 0; i < num_angles; i++)
+        angles[i] = clamp_angle(angles[i], limits_low[i], limits_high[i]);
 }
 
 void system_planar_arm::correct_moved_objects()
@@ -297,6 +311,7 @@ get_params_float(float ***params, private_param_info<float> **info)
 
     return params_float.size();
 }
+
 uint system_planar_arm::
 get_params_int(int ***params, private_param_info<int> **info)
 {
