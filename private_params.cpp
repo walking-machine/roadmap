@@ -1,7 +1,9 @@
-#include "shape_collections.hpp"
+#include "private_params.hpp"
 #include "imgui.h"
 
-void show_private_params(system_nd *system)
+typedef unsigned int uint;
+
+void show_private_params(private_params_provider *provider)
 {
     private_param_info<float> *info_f;
     float **params_f;
@@ -11,8 +13,8 @@ void show_private_params(system_nd *system)
     int **params_i;
     uint num_i;
 
-    num_f = system->get_params_float(&params_f, &info_f);
-    num_i = system->get_params_int(&params_i, &info_i);
+    num_f = provider->get_params_float(&params_f, &info_f);
+    num_i = provider->get_params_int(&params_i, &info_i);
 
     if (!num_f && !num_i)
         return;
@@ -32,5 +34,4 @@ void show_private_params(system_nd *system)
                        info_i[i].range.min, info_i[i].range.max);
     }
     ImGui::End();
-    
 }

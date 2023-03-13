@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <fstream>
+#include "private_params.hpp"
 
 class shape_manager {
 private:
@@ -34,20 +35,7 @@ private:
     std::vector<std::unique_ptr<shape_circle>> circles;
 };
 
-/* TODO : refactor into 2 lists (string + min + max / ) */
-template <class T>
-struct range_1d {
-    T min;
-    T max;
-};
-
-template <class T>
-struct private_param_info {
-    range_1d<T> range;
-    std::string name;
-};
-
-class system_nd {
+class system_nd : public private_params_provider {
 private:
     uint num_called = 0;
     uint num_called_seq = 0;
@@ -84,16 +72,8 @@ public:
     virtual float *get_dims_high() = 0;
     virtual float *get_start() = 0;
     virtual float *get_finish() = 0;
-    virtual uint get_params_float(float ***params,
-                                  private_param_info<float> **info)
-        { return 0; }
-    virtual uint get_params_int(int ***params,
-                                private_param_info<int> **info)
-        { return 0; }
     virtual float get_lebesgue();
 };
-
-void show_private_params(system_nd *system);
 
 #define DEFAULT_RADIUS 2.0f
 
