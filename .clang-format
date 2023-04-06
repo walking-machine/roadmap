@@ -1,0 +1,12 @@
+BasedOnStyle: LLVM
+IndentWidth: 8
+TabWidth: 8
+UseTab: Always
+ColumnLimit: 80
+BreakBeforeBraces: Stroustrup
+BraceWrapping:
+    AfterFunction: true
+    SplitEmptyFunction: false
+
+AllowShortFunctionsOnASingleLine: All
+AlignAfterOpenBracket: Align
