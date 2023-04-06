@@ -9,7 +9,7 @@ static float calc_base_radius(float lebesgue, uint dim)
            powf(lebesgue / unit_ball_volume(dim), dim_inv);
 }
 
-bool s_prm::continue_map_internal(graph *cur_set)
+bool prm::continue_map_internal(graph *cur_set)
 {
     float r = r_multi * base_r;
     /* generate vertices */
@@ -40,17 +40,24 @@ try_again:
     while (next_neigh < n) {
         uint neigh = get_next_in_radius(cur_set, r * r, next_neigh,
                                         cur_set->get_vertice(internal_cnt));
+
+        if (neigh >= n)
+            break;
+
         next_neigh = neigh + 1;
-        if (neigh < n)
-            if (sys->valid_cfg_seq(cur_set->get_vertice(internal_cnt),
-                                   cur_set->get_vertice(neigh)))
-                cur_set->add_edge(internal_cnt, neigh);
+
+        if (check_connection() && cur_set->same_component(internal_cnt, neigh))
+            continue;
+
+        if (sys->valid_cfg_seq(cur_set->get_vertice(internal_cnt),
+                               cur_set->get_vertice(neigh)))
+            cur_set->add_edge(internal_cnt, neigh);
     }
 
     return ++internal_cnt < n;
 }
 
-graph *s_prm::init_algo_internal(system_nd *new_sys)
+graph *prm::init_algo_internal(system_nd *new_sys)
 {
     internal_cnt = 0;
     base_r = calc_base_radius(new_sys->get_lebesgue(), new_sys->get_q_size());
@@ -58,7 +65,7 @@ graph *s_prm::init_algo_internal(system_nd *new_sys)
     return nullptr;
 }
 
-float s_prm::get_connection_radius(system_nd *sys)
+float prm::get_connection_radius(system_nd *sys)
 {
     return calc_base_radius(sys->get_lebesgue(), sys->get_q_size());
 }

@@ -29,6 +29,7 @@ int num_arm_links = 2;
 static int num_prm_nodes = 50;
 static int num_proceed = 1;
 static float r_multi = 0.1f;
+static int algo_type = 0;
 
 /* Temporary variables */
 float cur_pos[] = {0.f, 0.f};
@@ -119,6 +120,12 @@ static void path_gui()
 
     if (path.size() && ImGui::Button("Clear path"))
         delete_path();
+}
+
+static algorithm *algo_from_enum(int enum_val)
+{
+    return enum_val ? new s_prm(num_prm_nodes, r_multi) :
+                      new prm(num_prm_nodes, r_multi);
 }
 
 static void reset_viewport_to_window(SDL_Window *window)
@@ -308,8 +315,12 @@ save_end:
         ImGui::DragFloat("Connection radius multi",
                          &r_multi, 0.01f, 0.01f, 1.f);
 
+        ImGui::RadioButton("PRM", &algo_type, 0);
+        ImGui::RadioButton("sPRM", &algo_type, 1);
+
         if (ImGui::Button("Start building")) {
-            algo.reset(new s_prm(num_prm_nodes, r_multi));
+
+            algo.reset(algo_from_enum(algo_type));
             reset_graph(algo->init_algo(problem.get()));
             graph_msg = "Keep going";
         }
